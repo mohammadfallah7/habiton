@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+}
+
+model Habit {
+  id         String    @id @default(cuid())
+  userId     String
+  title      String
+  emoji      String    @default("✅")
+  color      String    @default("#6366f1")
+  // Amount needed per day (DAILY) or per week (WEEKLY): 1 for "did it", 8 for "8 glasses".
+  target     Int       @default(1)
+  unit       String    @default("times")
+  frequency  Frequency @default(DAILY)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  logs       HabitLog[]
+
+  @@index([userId, archivedAt])
+}
+
+model HabitLog {
+  id      String @id @default(cuid())
+  habitId String
+  // Calendar day as YYYY-MM-DD in the user's local time zone (not a timestamp),
+  // so "today" never shifts with server time zones.
+  day     String
+  value   Int    @default(0)
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, day])
+}
+
+// ---- Better Auth ----------------------------------------------------------
+// Habit.userId points at User.id. It is a plain column (no foreign key) so rows
+// created before auth existed ("demo-user") keep working until you reassign them.
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
