@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArchiveIcon, FlameIcon, TrophyIcon, CalendarCheckIcon, Trash2Icon } from "lucide-react";
+import { ArchiveIcon, FlameIcon, PencilIcon, TrophyIcon, CalendarCheckIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,12 +23,10 @@ const LEVEL_BG = [
   "var(--c)",
 ];
 
-function cellLabel(cell: HeatCell, unit: string) {
-  return cell.future
-    ? faDay(cell.day)
-    : cell.value > 0
-      ? `${faDay(cell.day)}: ${faNum(cell.value)} ${unit}`
-      : `${faDay(cell.day)}: ثبت نشده`;
+function cellLabel(cell: HeatCell, weekly: boolean, unit: string) {
+  if (cell.future) return `${faDay(cell.day)}: هنوز نرسیده`;
+  if (weekly) return cell.value > 0 ? `${faDay(cell.day)}: انجام شد` : `${faDay(cell.day)}: ثبت نشده`;
+  return cell.value > 0 ? `${faDay(cell.day)}: ${faNum(cell.value)} ${unit}` : `${faDay(cell.day)}: ثبت نشده`;
 }
 
 export function HabitDetail({
@@ -36,6 +34,8 @@ export function HabitDetail({
   today,
   open,
   onOpenChange,
+  onLogDay,
+  onEdit,
   onArchive,
   onDelete,
 }: {
@@ -43,6 +43,8 @@ export function HabitDetail({
   today: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLogDay: (day: string) => void;
+  onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
@@ -93,7 +95,7 @@ export function HabitDetail({
             <div className="flex w-max gap-2">
               <div className="flex flex-col gap-[3px] pt-5">
                 {weekDays(today).map((d) => (
-                  <span key={d} className="grid h-3 place-items-center text-[10px] leading-none text-muted-foreground">
+                  <span key={d} className="grid h-4 place-items-center text-[10px] leading-none text-muted-foreground">
                     {faWeekdayNarrow(d)}
                   </span>
                 ))}
@@ -104,22 +106,32 @@ export function HabitDetail({
                   const showMonth = i === 0 || month !== faMonth(grid[i - 1][0].day);
                   return (
                     <div key={i} className="flex flex-col gap-[3px]">
-                      <span className="relative h-4 w-3 text-[10px] leading-4 whitespace-nowrap text-muted-foreground">
+                      <span className="relative h-4 w-4 text-[10px] leading-4 whitespace-nowrap text-muted-foreground">
                         {showMonth && <span className="absolute start-0">{month}</span>}
                       </span>
-                      {col.map((c) => (
-                        <button
-                          key={c.day}
-                          type="button"
-                          tabIndex={-1}
-                          title={cellLabel(c, unit)}
-                          aria-label={cellLabel(c, unit)}
-                          onMouseEnter={() => setHover(cellLabel(c, unit))}
-                          onClick={() => setHover(cellLabel(c, unit))}
-                          className="size-3 rounded-[4px] transition-transform hover:scale-125"
-                          style={{ background: LEVEL_BG[c.level], opacity: c.future ? 0.3 : 1 }}
-                        />
-                      ))}
+                      {col.map((c) => {
+                        const label = cellLabel(c, weekly, unit);
+                        const style = { background: LEVEL_BG[c.level], opacity: c.future ? 0.3 : 1 };
+                        if (c.future) {
+                          return <span key={c.day} title={label} className="size-4 rounded-[4px]" style={style} />;
+                        }
+                        return (
+                          <button
+                            key={c.day}
+                            type="button"
+                            title={label}
+                            aria-label={label}
+                            onMouseEnter={() => setHover(label)}
+                            onFocus={() => setHover(label)}
+                            onClick={() => {
+                              setHover(label);
+                              onLogDay(c.day);
+                            }}
+                            className="size-4 rounded-[4px] transition-transform hover:scale-125 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            style={style}
+                          />
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -127,7 +139,7 @@ export function HabitDetail({
             </div>
           </div>
           <div className="flex min-h-5 items-center justify-between gap-3 text-xs text-muted-foreground">
-            <span>{hover ?? "روی یک خانه بزن تا جزئیات روز را ببینی"}</span>
+            <span>{hover ?? "روی یک روز بزن تا کامل یا پاک شود"}</span>
             <span className="flex shrink-0 items-center gap-1" aria-hidden>
               کمتر
               {LEVEL_BG.map((bg, i) => (
@@ -158,10 +170,16 @@ export function HabitDetail({
                 <Trash2Icon />
                 حذف
               </Button>
-              <Button variant="outline" onClick={onArchive}>
-                <ArchiveIcon />
-                بایگانی
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onEdit}>
+                  <PencilIcon />
+                  ویرایش
+                </Button>
+                <Button variant="outline" onClick={onArchive}>
+                  <ArchiveIcon />
+                  بایگانی
+                </Button>
+              </div>
             </>
           )}
         </DialogFooter>

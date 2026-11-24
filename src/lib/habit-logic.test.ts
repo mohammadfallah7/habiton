@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  clampLogValue,
   computeStats,
   currentProgress,
   dayCompletion,
   heatLevel,
   heatmap,
   isCurrentDone,
+  markLevel,
+  toggleDayDelta,
   weekDays,
   weekStartOf,
 } from "./habit-logic";
@@ -91,6 +94,35 @@ describe("heatmap", () => {
     expect(heatLevel(glasses, 3)).toBe(2);
     expect(heatLevel(glasses, 6)).toBe(3);
     expect(heatLevel(glasses, 8)).toBe(4);
+  });
+  it("paints a weekly check-in as a full day, not a fraction of the weekly target", () => {
+    const grid = heatmap(weekly, { "2026-11-16": 1 }, "2026-11-19", 1);
+    const monday = grid[0].find((cell) => cell.day === "2026-11-16");
+    const empty = grid[0].find((cell) => cell.day === "2026-11-15");
+    expect(markLevel(weekly, 1)).toBe(4);
+    expect(markLevel(weekly, 0)).toBe(0);
+    expect(monday?.level).toBe(4);
+    expect(empty?.level).toBe(0);
+  });
+});
+
+describe("logging a day", () => {
+  it("fills a daily goal in one step, and clears it once met", () => {
+    expect(toggleDayDelta(glasses, 0)).toBe(8);
+    expect(toggleDayDelta(glasses, 3)).toBe(5);
+    expect(toggleDayDelta(glasses, 8)).toBe(-8);
+    expect(toggleDayDelta(glasses, 9)).toBe(-9);
+  });
+  it("toggles a single check-in", () => {
+    expect(toggleDayDelta(daily, 0)).toBe(1);
+    expect(toggleDayDelta(daily, 1)).toBe(-1);
+    expect(toggleDayDelta(weekly, 0)).toBe(1);
+    expect(toggleDayDelta(weekly, 2)).toBe(-2);
+  });
+  it("keeps a log value inside the allowed range", () => {
+    expect(clampLogValue(-3)).toBe(0);
+    expect(clampLogValue(4)).toBe(4);
+    expect(clampLogValue(99_999)).toBe(10_000);
   });
 });
 

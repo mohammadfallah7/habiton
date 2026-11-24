@@ -11,11 +11,18 @@ export default async function Home() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const habits = await db.habit.findMany({
-    where: { userId: session.user.id, archivedAt: null },
-    orderBy: { createdAt: "asc" },
-    include: { logs: { select: { day: true, value: true } } },
-  });
+  const [habits, archived] = await Promise.all([
+    db.habit.findMany({
+      where: { userId: session.user.id, archivedAt: null },
+      orderBy: { createdAt: "asc" },
+      include: { logs: { select: { day: true, value: true } } },
+    }),
+    db.habit.findMany({
+      where: { userId: session.user.id, archivedAt: { not: null } },
+      orderBy: { archivedAt: "desc" },
+      select: { id: true, title: true, emoji: true, color: true },
+    }),
+  ]);
 
   const view: HabitView[] = habits.map((h) => ({
     id: h.id,
@@ -26,14 +33,17 @@ export default async function Home() {
     unit: h.unit,
     frequency: h.frequency,
     logs: Object.fromEntries(h.logs.map((l) => [l.day, l.value])),
+    // Replaced on the client with the user's local calendar day. The UTC date
+    // is only a placeholder so the server render stays timezone-agnostic.
+    createdAt: h.createdAt.toISOString(),
     startDay: h.createdAt.toISOString().slice(0, 10),
   }));
 
   return (
     <>
       <AppHeader name={session.user.name} />
-      <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-16">
-        <HabitBoard habits={view} userName={session.user.name} />
+      <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-[max(6rem,env(safe-area-inset-bottom))]">
+        <HabitBoard habits={view} archived={archived} userName={session.user.name} />
       </main>
     </>
   );

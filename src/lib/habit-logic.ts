@@ -46,6 +46,16 @@ export function isDayDone(rule: HabitRule, value: number): boolean {
   return value >= Math.max(rule.target, 1);
 }
 
+/** Highest value stored for one habit on one day. */
+export const MAX_LOG_VALUE = 10_000;
+
+/** Keep a stored amount inside 0..MAX_LOG_VALUE. */
+export function clampLogValue(value: number): number {
+  if (value <= 0) return 0;
+  if (value >= MAX_LOG_VALUE) return MAX_LOG_VALUE;
+  return value;
+}
+
 /** Heat level 0-4 by share of the daily goal reached. */
 export function heatLevel(rule: HabitRule, value: number): 0 | 1 | 2 | 3 | 4 {
   if (value <= 0) return 0;
@@ -54,6 +64,27 @@ export function heatLevel(rule: HabitRule, value: number): 0 | 1 | 2 | 3 | 4 {
   if (share >= 0.66) return 3;
   if (share >= 0.33) return 2;
   return 1;
+}
+
+/**
+ * Colour of one calendar day. A weekly habit is a check-in, so any amount
+ * fills the cell. A daily habit fades in by share of that day's goal.
+ */
+export function markLevel(rule: HabitRule, value: number): 0 | 1 | 2 | 3 | 4 {
+  if (rule.frequency === "WEEKLY") return value > 0 ? 4 : 0;
+  return heatLevel(rule, value);
+}
+
+/**
+ * Delta that completes a day, or clears it when it is already complete.
+ * Weekly habits (and daily habits with a target of 1) flip a single check-in.
+ * A larger daily goal jumps straight to the target.
+ */
+export function toggleDayDelta(rule: HabitRule, value: number): number {
+  if (rule.frequency === "WEEKLY") return value > 0 ? -value : 1;
+  const goal = Math.max(rule.target, 1);
+  if (value >= goal) return -value;
+  return clampLogValue(goal) - value;
 }
 
 /** Progress shown on the row: today's value (DAILY) or check-in days this week (WEEKLY). */
@@ -150,7 +181,7 @@ export function heatmap(rule: HabitRule, logs: Logs, today: string, weeks = 26):
       col.push({
         day,
         value,
-        level: heatLevel(rule, value),
+        level: markLevel(rule, value),
         future: day > today,
       });
     }

@@ -19,7 +19,7 @@ export function AppHeader({ name }: { name: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-2.5">
           <span className="grid size-9 place-items-center rounded-xl bg-linear-to-br from-violet-600 to-fuchsia-500 text-white shadow-md shadow-primary/30">
