@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/progress-ring";
 import { faNum, faWeekday } from "@/lib/format";
-import { computeStats, currentProgress, heatLevel, weekDays } from "@/lib/habit-logic";
+import { computeStats, currentProgress, markLevel, weekDays } from "@/lib/habit-logic";
 import { cn } from "@/lib/utils";
 import type { HabitView } from "./habit-board";
 
@@ -15,12 +15,14 @@ export function HabitCard({
   today,
   index,
   onLog,
+  onToggle,
   onOpen,
 }: {
   habit: HabitView;
   today: string;
   index: number;
   onLog: (delta: number) => void;
+  onToggle: () => void;
   onOpen: () => void;
 }) {
   const weekly = h.frequency === "WEEKLY";
@@ -35,7 +37,8 @@ export function HabitCard({
   const unit = weekly ? "روز این هفته" : h.unit;
 
   function tap() {
-    onLog(toggle && todayValue > 0 ? -todayValue : 1);
+    if (toggle) onToggle();
+    else onLog(1);
   }
 
   return (
@@ -135,7 +138,7 @@ export function HabitCard({
         <div className="flex items-center gap-1" aria-hidden>
           {weekDays(today).map((day) => {
             const value = h.logs[day] ?? 0;
-            const level = weekly ? (value > 0 ? 4 : 0) : heatLevel(h, value);
+            const level = markLevel(h, value);
             return (
               <span
                 key={day}

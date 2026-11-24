@@ -10,7 +10,7 @@ const SAMPLE = [
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_1.05fr]">
-      <div className="relative flex flex-col px-5 py-6 sm:px-10">
+      <div className="relative flex flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-10">
         <div className="flex items-center justify-between">
           <Brand />
           <ThemeToggle />

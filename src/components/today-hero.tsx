@@ -63,7 +63,7 @@ export function TodayHero({
       ? "اولین عادتت را بساز و زنجیره را شروع کن."
       : remaining === 0
         ? "همه‌ی کارهای امروز انجام شد. عالی بود! 🎉"
-        : `${faNum(remaining)} عادت تا پایان امروز مانده است.`;
+        : `${faNum(remaining)} عادت هنوز به هدفش نرسیده.`;
 
   return (
     <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-6 text-white shadow-xl shadow-primary/25 sm:p-8">

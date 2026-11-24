@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckIcon, LoaderCircleIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { createHabit } from "@/app/actions";
+import { createHabit, updateHabit } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,32 +18,45 @@ import { faNum } from "@/lib/format";
 import type { Frequency } from "@/lib/habit-logic";
 import { COLORS, EMOJIS, TEMPLATES, UNITS, type HabitPreset } from "@/lib/habit-presets";
 import { cn } from "@/lib/utils";
+import type { HabitView } from "./habit-board";
 
 export function HabitFormDialog({
   open,
   onOpenChange,
   preset,
+  habit,
+  formKey,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preset: HabitPreset | null;
+  habit: HabitView | null;
+  formKey: number;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92dvh] gap-5 overflow-y-auto sm:max-w-md">
-        <FormBody preset={preset} onDone={() => onOpenChange(false)} />
+        <FormBody key={formKey} preset={preset} habit={habit} onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function FormBody({ preset, onDone }: { preset: HabitPreset | null; onDone: () => void }) {
-  const [title, setTitle] = useState(preset?.title ?? "");
-  const [emoji, setEmoji] = useState(preset?.emoji ?? EMOJIS[0]);
-  const [color, setColor] = useState(preset?.color ?? COLORS[0]);
-  const [frequency, setFrequency] = useState<Frequency>(preset?.frequency ?? "DAILY");
-  const [target, setTarget] = useState(preset?.target ?? 1);
-  const [unit, setUnit] = useState(preset?.unit ?? UNITS[0]);
+function FormBody({
+  preset,
+  habit,
+  onDone,
+}: {
+  preset: HabitPreset | null;
+  habit: HabitView | null;
+  onDone: () => void;
+}) {
+  const [title, setTitle] = useState(habit?.title ?? preset?.title ?? "");
+  const [emoji, setEmoji] = useState(habit?.emoji ?? preset?.emoji ?? EMOJIS[0]);
+  const [color, setColor] = useState(habit?.color ?? preset?.color ?? COLORS[0]);
+  const [frequency, setFrequency] = useState<Frequency>(habit?.frequency ?? preset?.frequency ?? "DAILY");
+  const [target, setTarget] = useState(habit?.target ?? preset?.target ?? 1);
+  const [unit, setUnit] = useState(habit?.unit ?? preset?.unit ?? UNITS[0]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -68,16 +81,17 @@ function FormBody({ preset, onDone }: { preset: HabitPreset | null; onDone: () =
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await createHabit({
+      const payload = {
         title,
         emoji,
         color,
         frequency,
         target,
         unit: weekly ? "بار" : unit,
-      });
+      };
+      const res = habit ? await updateHabit(habit.id, payload) : await createHabit(payload);
       if (res.ok) {
-        toast.success("عادت اضافه شد");
+        toast.success(habit ? "تغییرها ذخیره شد" : "عادت اضافه شد");
         onDone();
       } else {
         setError(res.error);
@@ -96,7 +110,9 @@ function FormBody({ preset, onDone }: { preset: HabitPreset | null; onDone: () =
             {emoji}
           </span>
           <div className="min-w-0">
-            <DialogTitle className="truncate text-lg font-bold">{title.trim() || "عادت جدید"}</DialogTitle>
+            <DialogTitle className="truncate text-lg font-bold">
+              {title.trim() || (habit ? "ویرایش عادت" : "عادت جدید")}
+            </DialogTitle>
             <DialogDescription>
               {weekly ? `${faNum(target)} روز در هفته` : `${faNum(target)} ${unit} در روز`}
             </DialogDescription>
@@ -280,10 +296,10 @@ function FormBody({ preset, onDone }: { preset: HabitPreset | null; onDone: () =
           type="submit"
           size="lg"
           className="h-10 px-5"
-          disabled={pending || !title.trim() || !unit.trim()}
+          disabled={pending || !title.trim() || (!weekly && !unit.trim())}
         >
           {pending && <LoaderCircleIcon className="animate-spin" />}
-          افزودن عادت
+          {habit ? "ذخیره" : "افزودن عادت"}
         </Button>
       </div>
     </form>
